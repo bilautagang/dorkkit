@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DorkKit — Google Dork Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --bg2: #0f1117;
+    --bg3: #151820;
+    --border: #1e2230;
+    --border2: #2a2f42;
+    --accent: #00ff88;
+    --accent2: #00c9ff;
+    --accent3: #ff6b35;
+    --accent4: #a855f7;
+    --text: #e2e8f0;
+    --text2: #8892a4;
+    --text3: #4a5568;
+    --red: #ff4466;
+    --yellow: #ffd60a;
+    --green: #00ff88;
+    --card-bg: #0d1018;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,136,0.01) 2px,
+      rgba(0,255,136,0.01) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid noise background */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    background: rgba(10,11,15,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    border: 1.5px solid var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0,255,136,0.2);
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(0,255,136,0.2); }
+    50% { box-shadow: 0 0 24px rgba(0,255,136,0.4); }
+  }
+
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .logo-version {
+    font-size: 10px;
+    color: var(--text3);
+    border: 1px solid var(--border2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── INPUT AREA ── */
+  .input-section {
+    padding: 32px 0 24px;
+  }
+
+  .target-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .input-prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg3);
+    border: 1.5px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 12px 14px 12px 38px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,255,136,0.1);
+  }
+
+  input[type="text"]::placeholder { color: var(--text3); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover { background: #00e87a; box-shadow: 0 0 20px rgba(0,255,136,0.3); }
+
+  .btn-secondary {
+    background: var(--bg3);
+    color: var(--text2);
+    border: 1.5px solid var(--border2);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text3);
+    border: 1.5px solid var(--border);
+    font-size: 12px;
+    padding: 8px 14px;
+  }
+
+  .btn-ghost:hover { color: var(--text2); border-color: var(--border2); }
+
+  .generate-count {
+    font-weight: 700;
+    background: rgba(0,0,0,0.2);
+    padding: 1px 7px;
+    border-radius: 4px;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-right: 4px;
+  }
+
+  .tag-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tag-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .tag-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+  .tag-btn[data-tag="recon"].active { background: var(--accent2); border-color: var(--accent2); }
+  .tag-btn[data-tag="files"].active { background: var(--yellow); border-color: var(--yellow); }
+  .tag-btn[data-tag="login"].active { background: var(--accent3); border-color: var(--accent3); }
+  .tag-btn[data-tag="vuln"].active { background: var(--red); border-color: var(--red); }
+  .tag-btn[data-tag="osint"].active { background: var(--accent4); border-color: var(--accent4); }
+
+  .search-wrap {
+    position: relative;
+    margin-left: auto;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  #dork-search {
+    background: var(--bg3);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 6px 10px 6px 30px;
+    width: 200px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #dork-search:focus { border-color: var(--accent2); }
+  #dork-search::placeholder { color: var(--text3); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-sep { flex: 1; }
+
+  .open-count {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  .open-count span { color: var(--accent); font-weight: 700; }
+
+  /* ── CATEGORIES GRID ── */
+  .categories { display: flex; flex-direction: column; gap: 16px; padding-bottom: 60px; }
+
+  /* ── CATEGORY CARD ── */
+  .cat-card {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .cat-card:hover { border-color: var(--border2); }
+
+  .cat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg2);
+  }
+
+  .cat-header:hover { background: var(--bg3); }
+
+  .cat-icon {
+    font-size: 16px;
+    width: 30px;
+    text-align: center;
+  }
+
+  .cat-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .cat-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .tag-recon { background: rgba(0,201,255,0.15); color: var(--accent2); }
+  .tag-files { background: rgba(255,214,10,0.15); color: var(--yellow); }
+  .tag-login { background: rgba(255,107,53,0.15); color: var(--accent3); }
+  .tag-vuln  { background: rgba(255,68,102,0.15); color: var(--red); }
+  .tag-osint { background: rgba(168,85,247,0.15); color: var(--accent4); }
+
+  .cat-count {
+    font-size: 11px;
+    color: var(--text3);
+    margin-right: 4px;
+  }
+
+  .cat-chevron {
+    color: var(--text3);
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+
+  .cat-card.open .cat-chevron { transform: rotate(180deg); }
+
+  .cat-body {
+    display: none;
+    padding: 4px 0 8px;
+  }
+
+  .cat-card.open .cat-body { display: block; }
+
+  /* ── DORK ROW ── */
+  .dork-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    padding: 10px 18px;
+    border-top: 1px solid var(--border);
+    align-items: start;
+    transition: background 0.1s;
+  }
+
+  .dork-row:first-child { border-top: none; }
+  .dork-row:hover { background: rgba(255,255,255,0.02); }
+
+  .dork-row.hidden { display: none; }
+
+  .dork-info { flex: 1; min-width: 0; }
+
+  .dork-desc {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .dork-desc mark {
+    background: rgba(0,255,136,0.15);
+    color: var(--accent);
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+
+  .dork-query {
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.1);
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-family: var(--font-mono);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  .dork-query .domain-part {
+    color: var(--accent2);
+    font-weight: 700;
+  }
+
+  .dork-query .placeholder {
+    color: var(--text3);
+    font-style: italic;
+  }
+
+  .dork-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 14px;
+    padding-top: 20px;
+  }
+
+  .btn-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    border-radius: 6px;
+    border: 1.5px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .btn-search:hover {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 0 14px rgba(0,255,136,0.25);
+  }
+
+  .btn-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border2);
+    background: transparent;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-copy:hover { border-color: var(--text2); color: var(--text2); }
+  .btn-copy.copied { border-color: var(--green); color: var(--green); }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10,11,15,0.97);
+    border-top: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 11px;
+    color: var(--text3);
+    z-index: 200;
+    backdrop-filter: blur(8px);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .status-target { color: var(--accent2); font-weight: 700; }
+  .status-right { margin-left: auto; display: flex; gap: 16px; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text3);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text2); }
+  .empty-sub { font-size: 13px; line-height: 1.6; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 60px;
+    right: 24px;
+    background: var(--bg3);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 12px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,255,136,0.15);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── DISCLAIMER BANNER ── */
+  .disclaimer {
+    background: rgba(255,68,102,0.07);
+    border: 1px solid rgba(255,68,102,0.2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 11px;
+    color: #ff8099;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ── OPEN-ALL BTN ── */
+  .btn-openall {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(0,201,255,0.4);
+    background: transparent;
+    color: var(--accent2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-openall:hover { background: rgba(0,201,255,0.08); border-color: var(--accent2); }
+
+  @media (max-width: 680px) {
+    .header-stats { gap: 16px; }
+    .stat-num { font-size: 15px; }
+    .dork-row { grid-template-columns: 1fr; }
+    .dork-actions { flex-direction: row; padding-left: 0; padding-top: 10px; }
+    .search-wrap { margin-left: 0; }
+    #dork-search { width: 100%; }
+    .filter-bar { flex-wrap: wrap; }
+    .toolbar { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">⌕</div>
+        <div>
+          <span class="logo-text">Dork<span>Kit</span></span>
+          <span class="logo-version">v1.0</span>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat"><div class="stat-num" id="stat-cats">12</div><div class="stat-label">Categories</div></div>
+        <div class="stat"><div class="stat-num" id="stat-dorks">0</div><div class="stat-label">Dorks</div></div>
+        <div class="stat"><div class="stat-num" id="stat-visible">0</div><div class="stat-label">Visible</div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="input-section">
+    <div class="target-row">
+      <div class="input-wrap">
+        <span class="input-prefix">//</span>
+        <input type="text" id="domain-input" placeholder="target.com — enter domain to generate dorks" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn btn-primary" onclick="generateDorks()">
+        ⚡ Generate
+        <span class="generate-count" id="gen-count">0</span>
+      </button>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ <strong>Ethical use only.</strong> Google Dorks are for authorized security testing and OSINT research. Do not use on systems you do not own or have written permission to test.
+    </div>
+
+    <div class="filter-bar">
+      <span class="filter-label">Filter:</span>
+      <button class="tag-btn active" data-tag="all" onclick="filterTag('all')">All</button>
+      <button class="tag-btn" data-tag="recon" onclick="filterTag('recon')">Recon</button>
+      <button class="tag-btn" data-tag="files" onclick="filterTag('files')">Files</button>
+      <button class="tag-btn" data-tag="login" onclick="filterTag('login')">Login</button>
+      <button class="tag-btn" data-tag="vuln" onclick="filterTag('vuln')">Vuln</button>
+      <button class="tag-btn" data-tag="osint" onclick="filterTag('osint')">OSINT</button>
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="dork-search" placeholder="search dorks..." oninput="searchDorks(this.value)">
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn-ghost btn" onclick="expandAll()">▾ Expand All</button>
+      <button class="btn-ghost btn" onclick="collapseAll()">▸ Collapse All</button>
+      <button class="btn-openall" onclick="openAllDorks()">↗ Open All in Tabs</button>
+      <span class="toolbar-sep"></span>
+      <span class="open-count"><span id="visible-count">0</span> dorks visible</span>
+    </div>
+  </div>
+
+  <div id="empty-state" class="empty-state">
+    <div class="empty-icon">⌕</div>
+    <div class="empty-title">Enter a domain to generate dorks</div>
+    <div class="empty-sub">Type a target domain above and click Generate.<br>All dorks will appear with direct Google search links.</div>
+  </div>
+
+  <div class="categories" id="categories"></div>
+</main>
+
+<div class="status-bar">
+  <div class="status-dot"></div>
+  <span>DorkKit — Google Dork Generator</span>
+  <span class="status-target" id="status-target">no target</span>
+  <div class="status-right">
+    <span>⚠ ethical use only</span>
+    <span id="status-count">0 dorks loaded</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DORK DATABASE ──
+const DORK_CATEGORIES = [
+  {
+    id: 'site-recon',
+    name: 'Site Recon',
+    icon: '🌐',
+    tag: 'recon',
+    dorks: [
+      { desc: 'All indexed pages on the target site', query: 'site:{domain}' },
+      { desc: 'All subdomains indexed by Google', query: 'site:*.{domain}' },
+      { desc: 'Pages with target domain in URL', query: 'inurl:{domain}' },
+      { desc: 'Pages with domain in title', query: 'intitle:"{domain}"' },
+      { desc: 'Cache of the target site', query: 'cache:{domain}' },
+      { desc: 'Sites linking to the target', query: 'link:{domain}' },
+      { desc: 'Related sites to target', query: 'related:{domain}' },
+      { desc: 'Pages referencing target domain', query: 'intext:"{domain}"' },
+    ]
+  },
+  {
+    id: 'subdomains',
+    name: 'Subdomain Discovery',
+    icon: '🔗',
+    tag: 'recon',
+    dorks: [
+      { desc: 'All subdomains via wildcard', query: 'site:*.{domain} -www' },
+      { desc: 'API subdomains', query: 'site:api.{domain} OR site:api2.{domain}' },
+      { desc: 'Dev / staging subdomains', query: 'site:dev.{domain} OR site:staging.{domain} OR site:stage.{domain}' },
+      { desc: 'Test subdomains', query: 'site:test.{domain} OR site:beta.{domain} OR site:uat.{domain}' },
+      { desc: 'Admin subdomains', query: 'site:admin.{domain} OR site:manage.{domain}' },
+      { desc: 'Mail subdomains', query: 'site:mail.{domain} OR site:webmail.{domain} OR site:smtp.{domain}' },
+      { desc: 'VPN / remote subdomains', query: 'site:vpn.{domain} OR site:remote.{domain} OR site:citrix.{domain}' },
+    ]
+  },
+  {
+    id: 'sensitive-files',
+    name: 'Sensitive Files',
+    icon: '📄',
+    tag: 'files',
+    dorks: [
+      { desc: 'PDF documents on site', query: 'site:{domain} filetype:pdf' },
+      { desc: 'Excel spreadsheets', query: 'site:{domain} filetype:xls OR filetype:xlsx' },
+      { desc: 'Word documents', query: 'site:{domain} filetype:doc OR filetype:docx' },
+      { desc: 'SQL dump files', query: 'site:{domain} filetype:sql' },
+      { desc: 'Log files', query: 'site:{domain} filetype:log' },
+      { desc: 'Config / env files', query: 'site:{domain} filetype:env OR filetype:cfg OR filetype:conf' },
+      { desc: 'Backup files', query: 'site:{domain} filetype:bak OR filetype:backup OR filetype:old' },
+      { desc: 'XML files', query: 'site:{domain} filetype:xml' },
+      { desc: 'JSON files exposed', query: 'site:{domain} filetype:json' },
+      { desc: 'Shell / PHP scripts', query: 'site:{domain} filetype:sh OR filetype:php OR filetype:py' },
+      { desc: 'Certificate / key files', query: 'site:{domain} filetype:pem OR filetype:key OR filetype:crt' },
+      { desc: 'Archive / zip files', query: 'site:{domain} filetype:zip OR filetype:tar OR filetype:gz' },
+    ]
+  },
+  {
+    id: 'login-panels',
+    name: 'Login & Admin Panels',
+    icon: '🔐',
+    tag: 'login',
+    dorks: [
+      { desc: 'Login pages on target', query: 'site:{domain} inurl:login' },
+      { desc: 'Admin login panels', query: 'site:{domain} inurl:admin' },
+      { desc: 'Dashboard pages', query: 'site:{domain} inurl:dashboard' },
+      { desc: 'cPanel login', query: 'site:{domain} inurl:cpanel' },
+      { desc: 'phpMyAdmin panel', query: 'site:{domain} inurl:phpmyadmin' },
+      { desc: 'WordPress admin', query: 'site:{domain} inurl:wp-admin OR inurl:wp-login' },
+      { desc: 'Joomla admin', query: 'site:{domain} inurl:administrator' },
+      { desc: 'Register / signup pages', query: 'site:{domain} inurl:register OR inurl:signup' },
+      { desc: 'Password reset pages', query: 'site:{domain} inurl:reset-password OR inurl:forgot-password' },
+      { desc: 'SSO / OAuth endpoints', query: 'site:{domain} inurl:sso OR inurl:oauth OR inurl:saml' },
+      { desc: 'Webmail interfaces', query: 'site:{domain} intitle:"webmail" OR intitle:"roundcube" OR intitle:"squirrel"' },
+    ]
+  },
+  {
+    id: 'exposed-content',
+    name: 'Exposed Directories & Content',
+    icon: '📂',
+    tag: 'recon',
+    dorks: [
+      { desc: 'Open directory listings', query: 'site:{domain} intitle:"index of"' },
+      { desc: 'Directory index with parent', query: 'site:{domain} intitle:"index of /" "parent directory"' },
+      { desc: 'Apache directory listing', query: 'site:{domain} intitle:"directory listing" apache' },
+      { desc: 'Uploads directory', query: 'site:{domain} inurl:/uploads/ intitle:"index of"' },
+      { desc: 'Backup directory', query: 'site:{domain} inurl:/backup/ intitle:"index of"' },
+      { desc: 'Config files directory', query: 'site:{domain} inurl:/config/ intitle:"index of"' },
+      { desc: 'Git repository exposed', query: 'site:{domain} inurl:/.git' },
+      { desc: 'SVN repository', query: 'site:{domain} inurl:/.svn' },
+      { desc: 'DS_Store files', query: 'site:{domain} filetype:DS_Store' },
+      { desc: 'Robots.txt reveals paths', query: 'site:{domain} filetype:txt inurl:robots' },
+    ]
+  },
+  {
+    id: 'api-endpoints',
+    name: 'API & Endpoints',
+    icon: '🔌',
+    tag: 'recon',
+    dorks: [
+      { desc: 'API endpoints in URL', query: 'site:{domain} inurl:/api/' },
+      { desc: 'REST API v1/v2 endpoints', query: 'site:{domain} inurl:/api/v1 OR inurl:/api/v2' },
+      { desc: 'GraphQL endpoints', query: 'site:{domain} inurl:/graphql' },
+      { desc: 'Swagger / OpenAPI docs', query: 'site:{domain} inurl:swagger OR inurl:api-docs' },
+      { desc: 'WSDL / SOAP services', query: 'site:{domain} filetype:wsdl OR inurl:wsdl' },
+      { desc: 'JSON API responses', query: 'site:{domain} inurl:/api/ filetype:json' },
+      { desc: 'Exposed API keys in pages', query: 'site:{domain} intext:"api_key" OR intext:"apikey" OR intext:"api-key"' },
+      { desc: 'Endpoints with tokens', query: 'site:{domain} inurl:token OR inurl:access_token' },
+    ]
+  },
+  {
+    id: 'credentials',
+    name: 'Exposed Credentials & Secrets',
+    icon: '🔑',
+    tag: 'vuln',
+    dorks: [
+      { desc: 'Password in URL or page', query: 'site:{domain} intext:password filetype:log' },
+      { desc: 'Username + password in text', query: 'site:{domain} intext:"username" intext:"password"' },
+      { desc: 'DB credentials in config', query: 'site:{domain} intext:"DB_PASSWORD" OR intext:"database_password"' },
+      { desc: 'AWS keys exposed', query: 'site:{domain} intext:"aws_access_key_id" OR intext:"aws_secret_access_key"' },
+      { desc: 'Private keys in pages', query: 'site:{domain} intext:"BEGIN RSA PRIVATE KEY" OR intext:"BEGIN PRIVATE KEY"' },
+      { desc: '.env files exposed', query: 'site:{domain} inurl:".env" intext:"password"' },
+      { desc: 'Slack tokens', query: 'site:{domain} intext:"xoxb-" OR intext:"xoxp-"' },
+      { desc: 'GitHub tokens', query: 'site:{domain} intext:"ghp_" OR intext:"github_token"' },
+    ]
+  },
+  {
+    id: 'error-pages',
+    name: 'Error Pages & Debug Info',
+    icon: '⚠️',
+    tag: 'vuln',
+    dorks: [
+      { desc: 'PHP error messages', query: 'site:{domain} "Warning: mysql_fetch" OR "Warning: include" OR "Fatal error"' },
+      { desc: 'SQL errors', query: 'site:{domain} "SQL syntax error" OR "mysql_num_rows" OR "ODBC SQL"' },
+      { desc: 'Stack traces / exception dumps', query: 'site:{domain} intext:"stack trace" OR intitle:"exception"' },
+      { desc: 'Debug mode pages', query: 'site:{domain} intext:"debug=true" OR inurl:"debug=1"' },
+      { desc: 'phpinfo() exposed', query: 'site:{domain} intitle:"phpinfo()" OR inurl:phpinfo.php' },
+      { desc: 'Server error 500 pages', query: 'site:{domain} intitle:"500 Internal Server Error"' },
+      { desc: 'Apache/Nginx test pages', query: 'site:{domain} intitle:"Test Page for Apache" OR intitle:"Welcome to nginx"' },
+    ]
+  },
+  {
+    id: 'cloud-storage',
+    name: 'Cloud Storage & S3 Buckets',
+    icon: '☁️',
+    tag: 'recon',
+    dorks: [
+      { desc: 'S3 bucket references', query: 'site:{domain} intext:"s3.amazonaws.com"' },
+      { desc: 'Azure Blob storage', query: 'site:{domain} intext:"blob.core.windows.net"' },
+      { desc: 'Google Cloud Storage', query: 'site:{domain} intext:"storage.googleapis.com"' },
+      { desc: 'Public S3 bucket enumeration', query: '"{domain}" site:s3.amazonaws.com' },
+      { desc: 'Firebase database exposure', query: 'site:{domain} intext:"firebaseio.com"' },
+      { desc: 'DigitalOcean Spaces', query: 'site:{domain} intext:"digitaloceanspaces.com"' },
+    ]
+  },
+  {
+    id: 'cms-tech',
+    name: 'CMS & Technology Detection',
+    icon: '⚙️',
+    tag: 'recon',
+    dorks: [
+      { desc: 'Detect WordPress install', query: 'site:{domain} inurl:wp-content OR inurl:wp-includes' },
+      { desc: 'WordPress plugins list', query: 'site:{domain} inurl:/wp-content/plugins/' },
+      { desc: 'Drupal installation', query: 'site:{domain} inurl:"/sites/default/"' },
+      { desc: 'Joomla installation', query: 'site:{domain} inurl:"/components/com_"' },
+      { desc: 'Laravel debug page', query: 'site:{domain} intitle:"Whoops! There was an error" OR "Laravel"' },
+      { desc: 'Django debug mode', query: 'site:{domain} intitle:"Django" "Error" "Traceback"' },
+      { desc: 'Confluence pages', query: 'site:{domain} inurl:/confluence/display/' },
+      { desc: 'Jenkins build server', query: 'site:{domain} intitle:"Dashboard [Jenkins]" OR inurl:/jenkins/' },
+    ]
+  },
+  {
+    id: 'osint-people',
+    name: 'OSINT — People & Emails',
+    icon: '👤',
+    tag: 'osint',
+    dorks: [
+      { desc: 'Email addresses on site', query: 'site:{domain} intext:"@{domain}"' },
+      { desc: 'Contact pages with emails', query: 'site:{domain} inurl:contact intext:"@"' },
+      { desc: 'Staff / team directory', query: 'site:{domain} intitle:"team" OR intitle:"staff" OR intitle:"about us"' },
+      { desc: 'LinkedIn employees at target', query: 'site:linkedin.com "{domain}"' },
+      { desc: 'GitHub repos mentioning domain', query: 'site:github.com "{domain}"' },
+      { desc: 'Pastebin leaks', query: 'site:pastebin.com "{domain}" password OR credentials' },
+      { desc: 'Document metadata (author)', query: 'site:{domain} filetype:pdf OR filetype:doc author:' },
+    ]
+  },
+  {
+    id: 'vuln-specific',
+    name: 'Vulnerability Indicators',
+    icon: '🛡️',
+    tag: 'vuln',
+    dorks: [
+      { desc: 'Possible SQL injection points', query: 'site:{domain} inurl:"id=" OR inurl:"page=" OR inurl:"cat="' },
+      { desc: 'Open redirect parameters', query: 'site:{domain} inurl:"redirect=" OR inurl:"url=" OR inurl:"next="' },
+      { desc: 'File include parameters', query: 'site:{domain} inurl:"file=" OR inurl:"include=" OR inurl:"path="' },
+      { desc: 'XSS-prone search pages', query: 'site:{domain} inurl:search inurl:"q="' },
+      { desc: 'Exposed admin scripts', query: 'site:{domain} inurl:/admin/ filetype:php' },
+      { desc: 'Exposed installation files', query: 'site:{domain} inurl:install.php OR inurl:setup.php' },
+      { desc: 'Exposed xmlrpc (WP)', query: 'site:{domain} inurl:xmlrpc.php' },
+      { desc: 'HTTP basic auth pages', query: 'site:{domain} inurl:/ intitle:"401 Authorization Required"' },
+    ]
+  },
+];
+
+// ── STATE ──
+let currentDomain = '';
+let activeTag = 'all';
+let searchQuery = '';
+let generated = false;
+
+// Count total dorks
+const totalDorks = DORK_CATEGORIES.reduce((a, c) => a + c.dorks.length, 0);
+document.getElementById('stat-dorks').textContent = totalDorks;
+
+function googleUrl(query) {
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+function buildQuery(template, domain) {
+  return domain
+    ? template.replace(/{domain}/g, domain)
+    : template;
+}
+
+function highlightSearch(text, q) {
+  if (!q) return text;
+  const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(${esc})`, 'gi'), '<mark>$1</mark>');
+}
+
+function renderQueryHtml(query, domain) {
+  if (!domain) {
+    return query.replace(/{domain}/g, '<span class="placeholder">{domain}</span>');
+  }
+  return query.replace(/{domain}/g, `<span class="domain-part">${domain}</span>`);
+}
+
+function generateDorks() {
+  const input = document.getElementById('domain-input').value.trim();
+  currentDomain = input.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  generated = true;
+  renderAll();
+  document.getElementById('status-target').textContent = currentDomain || 'no target';
+  showToast(currentDomain ? `✓ Generated dorks for ${currentDomain}` : '✓ Showing generic dork templates');
+}
+
+function renderAll() {
+  const container = document.getElementById('categories');
+  const emptyState = document.getElementById('empty-state');
+
+  if (!generated) {
+    emptyState.style.display = 'block';
+    container.innerHTML = '';
+    updateCounts(0);
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  container.innerHTML = '';
+
+  let visibleTotal = 0;
+
+  DORK_CATEGORIES.forEach(cat => {
+    if (activeTag !== 'all' && cat.tag !== activeTag) return;
+
+    const filteredDorks = cat.dorks.filter(d => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return d.desc.toLowerCase().includes(q) || d.query.toLowerCase().includes(q);
+    });
+
+    if (searchQuery && filteredDorks.length === 0) return;
+
+    visibleTotal += filteredDorks.length;
+
+    const card = document.createElement('div');
+    card.className = 'cat-card open';
+    card.dataset.catId = cat.id;
+    card.dataset.tag = cat.tag;
+
+    card.innerHTML = `
+      <div class="cat-header" onclick="toggleCat(this)">
+        <span class="cat-icon">${cat.icon}</span>
+        <span class="cat-name">${cat.name}</span>
+        <span class="cat-tag tag-${cat.tag}">${cat.tag}</span>
+        <span class="cat-count">${filteredDorks.length} dorks</span>
+        <span class="cat-chevron">▾</span>
+      </div>
+      <div class="cat-body">
+        ${filteredDorks.map((d, i) => {
+          const builtQuery = buildQuery(d.query, currentDomain);
+          const url = googleUrl(builtQuery);
+          const highlightedDesc = highlightSearch(d.desc, searchQuery);
+          const queryHtml = renderQueryHtml(d.query, currentDomain);
+          return `
+            <div class="dork-row" data-url="${url}" data-query="${builtQuery.replace(/"/g,'&quot;')}">
+              <div class="dork-info">
+                <div class="dork-desc">${highlightedDesc}</div>
+                <div class="dork-query">${queryHtml}</div>
+              </div>
+              <div class="dork-actions">
+                <a class="btn-search" href="${url}" target="_blank" rel="noopener noreferrer">↗ Search</a>
+                <button class="btn-copy" onclick="copyDork(this, '${builtQuery.replace(/'/g,"\\'")}')">⎘ Copy</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+
+  updateCounts(visibleTotal);
+}
+
+function updateCounts(visible) {
+  document.getElementById('stat-visible').textContent = visible;
+  document.getElementById('visible-count').textContent = visible;
+  document.getElementById('status-count').textContent = `${visible} dorks loaded`;
+
+  // Update generate button count
+  const totalVisible = DORK_CATEGORIES.reduce((a, c) => a + c.dorks.length, 0);
+  document.getElementById('gen-count').textContent = generated ? visible : totalDorks;
+}
+
+function toggleCat(header) {
+  const card = header.closest('.cat-card');
+  card.classList.toggle('open');
+}
+
+function expandAll() {
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.add('open'));
+}
+
+function collapseAll() {
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('open'));
+}
+
+function filterTag(tag) {
+  activeTag = tag;
+  document.querySelectorAll('.tag-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tag === tag);
+  });
+  renderAll();
+}
+
+function searchDorks(q) {
+  searchQuery = q.trim();
+  if (!generated) generateDorks();
+  renderAll();
+}
+
+function openAllDorks() {
+  const rows = document.querySelectorAll('.dork-row');
+  if (rows.length === 0) { showToast('⚠ No dorks visible to open'); return; }
+  if (rows.length > 10) {
+    if (!confirm(`Open ${rows.length} tabs? This will open many browser tabs.`)) return;
+  }
+  rows.forEach(row => {
+    window.open(row.dataset.url, '_blank', 'noopener');
+  });
+  showToast(`↗ Opened ${rows.length} search tabs`);
+}
+
+function copyDork(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// Enter key to generate
+document.getElementById('domain-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') generateDorks();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  const active = document.activeElement;
+  const typing = active.tagName === 'INPUT' || active.tagName === 'TEXTAREA';
+  if (typing) return;
+  if (e.key === 'g' || e.key === 'G') { document.getElementById('domain-input').focus(); }
+  if (e.key === '/') { e.preventDefault(); document.getElementById('dork-search').focus(); }
+  if (e.key === 'a' || e.key === 'A') expandAll();
+  if (e.key === 'Escape') { document.getElementById('dork-search').value = ''; searchDorks(''); }
+});
+
+// Init count display
+document.getElementById('gen-count').textContent = totalDorks;
+</script>
+</body>
+</html>
