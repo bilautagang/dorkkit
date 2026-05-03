@@ -1,4 +1,4 @@
-# dorkit
+# dorkkit
 
 How It Works
 
